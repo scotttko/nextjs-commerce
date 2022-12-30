@@ -35,8 +35,10 @@ const images = [
     thumbnail: 'https://picsum.photos/id/1019/250/150/',
   },
   {
-    original: 'https://picsum.photos/id/1020/1000/600/',
-    thumbnail: 'https://picsum.photos/id/1020/250/150/',
+    original:
+      'https://raw.githubusercontent.com/xiaolin/react-image-gallery/master/static/4v.jpg',
+    thumbnail:
+      'https://raw.githubusercontent.com/xiaolin/react-image-gallery/master/static/4v.jpg',
   },
 ]
 
