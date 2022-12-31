@@ -35,5 +35,5 @@ main()
   .catch(async (e) => {
     console.error(e)
     await prisma.$disconnect()
-    process.exit()
+    process.exit(1)
   })

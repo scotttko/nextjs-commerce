@@ -1,30 +1,36 @@
-import { products } from '@prisma/client'
+import { categories, products } from '@prisma/client'
 import Image from 'next/image'
 import { useEffect, useState } from 'react'
-import { Pagination } from '@mantine/core'
+import { Pagination, SegmentedControl } from '@mantine/core'
+import { CATEGORY_MAP, TAKE } from 'constants/products'
 
-const TAKE = 9
 export default function Products() {
   const [activePage, setPage] = useState(1)
   const [total, setTotal] = useState(0)
   const [products, setProducts] = useState<products[]>([])
+  const [categories, setCategories] = useState<categories[]>([])
+  const [selectedCategory, setSelectedCategory] = useState<string>('-1')
 
   useEffect(() => {
-    fetch(`/api/get-products-count`)
+    fetch(`/api/get-categories`)
       .then((res) => res.json())
-      .then((data) => setTotal(Math.ceil(data.items / TAKE)))
-
-    fetch(`/api/get-products?skip=0&take=${TAKE}`)
-      .then((res) => res.json())
-      .then((data) => setProducts(data.items))
+      .then((data) => setCategories(data.items))
   }, [])
 
   useEffect(() => {
+    fetch(`/api/get-products-count?category=${selectedCategory}`)
+      .then((res) => res.json())
+      .then((data) => setTotal(Math.ceil(data.items / TAKE)))
+  }, [selectedCategory])
+
+  useEffect(() => {
     const next = TAKE * (activePage - 1)
-    fetch(`/api/get-products?skip=${next}&take=${TAKE}`)
+    fetch(
+      `/api/get-products?skip=${next}&take=${TAKE}&category=${selectedCategory}`
+    )
       .then((res) => res.json())
       .then((data) => setProducts(data.items))
-  }, [activePage])
+  }, [activePage, selectedCategory])
 
   //   const getProducts = useCallback(() => {
   //     const next = skip + TAKE
@@ -39,10 +45,26 @@ export default function Products() {
 
   return (
     <div className="px-36 mt-36 mb-36">
+      {categories && (
+        <div className="mb-4">
+          <SegmentedControl
+            value={selectedCategory}
+            onChange={setSelectedCategory}
+            data={[
+              { label: 'ALL', value: '-1' },
+              ...categories.map((category) => ({
+                label: category.name,
+                value: String(category.id),
+              })),
+            ]}
+            color="dark"
+          />
+        </div>
+      )}
       {products && (
         <div className="grid grid-cols-3 gap-5">
           {products.map((item) => (
-            <div key={item.id}>
+            <div key={item.id} style={{ maxWidth: 300 }}>
               <Image
                 className="rounded"
                 alt={item.name}
@@ -59,7 +81,7 @@ export default function Products() {
                 </span>
               </div>
               <span className="text-zinc-400">
-                {item.category_id === 1 && '의류'}
+                {CATEGORY_MAP[item.category_id - 1]}
               </span>
             </div>
           ))}
