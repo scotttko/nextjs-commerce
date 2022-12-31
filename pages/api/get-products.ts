@@ -1,10 +1,16 @@
 // Next.js API route support: https://nextjs.org/docs/api-routes/introduction
 import type { NextApiRequest, NextApiResponse } from 'next'
 import { PrismaClient } from '@prisma/client'
+import { getOrderBy } from 'constants/products'
 
 const prisma = new PrismaClient()
 
-async function getProducts(skip: number, take: number, category: number) {
+async function getProducts(
+  skip: number,
+  take: number,
+  category: number,
+  orderBy: string
+) {
   const where =
     category && category !== -1
       ? {
@@ -13,12 +19,13 @@ async function getProducts(skip: number, take: number, category: number) {
           },
         }
       : undefined
-
+  const orderByCondition = getOrderBy(orderBy)
   try {
     const response = await prisma.products.findMany({
       skip: skip,
       take: take,
       ...where,
+      ...orderByCondition,
     })
     console.log(response)
     return response
@@ -36,7 +43,7 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse<Data>
 ) {
-  const { skip, take, category } = req.query
+  const { skip, take, category, orderBy } = req.query
   if (skip === null || take === null) {
     res.status(400).json({ message: 'No skip or take' })
     return
@@ -46,7 +53,8 @@ export default async function handler(
     const products = await getProducts(
       Number(skip),
       Number(take),
-      Number(category)
+      Number(category),
+      String(orderBy)
     )
     res.status(200).json({ items: products, message: 'Success' })
   } catch (error) {
