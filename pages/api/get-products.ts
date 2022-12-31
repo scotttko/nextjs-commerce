@@ -5,26 +5,37 @@ import { getOrderBy } from 'constants/products'
 
 const prisma = new PrismaClient()
 
-async function getProducts(
-  skip: number,
-  take: number,
-  category: number,
+async function getProducts({
+  skip,
+  take,
+  category,
+  orderBy,
+  contains,
+}: {
+  skip: number
+  take: number
+  category: number
   orderBy: string
-) {
+  contains: string
+}) {
+  const containsCondition =
+    contains && contains !== '' ? { name: { contains: contains } } : undefined
   const where =
     category && category !== -1
       ? {
-          where: {
-            category_id: category,
-          },
+          category_id: category,
+          ...containsCondition,
         }
+      : containsCondition
+      ? containsCondition
       : undefined
+
   const orderByCondition = getOrderBy(orderBy)
   try {
     const response = await prisma.products.findMany({
       skip: skip,
       take: take,
-      ...where,
+      where: where,
       ...orderByCondition,
     })
     console.log(response)
@@ -43,19 +54,20 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse<Data>
 ) {
-  const { skip, take, category, orderBy } = req.query
+  const { skip, take, category, orderBy, contains } = req.query
   if (skip === null || take === null) {
     res.status(400).json({ message: 'No skip or take' })
     return
   }
 
   try {
-    const products = await getProducts(
-      Number(skip),
-      Number(take),
-      Number(category),
-      String(orderBy)
-    )
+    const products = await getProducts({
+      skip: Number(skip),
+      take: Number(take),
+      category: Number(category),
+      orderBy: String(orderBy),
+      contains: String(contains),
+    })
     res.status(200).json({ items: products, message: 'Success' })
   } catch (error) {
     res.status(400).json({ message: `Failed to load` })

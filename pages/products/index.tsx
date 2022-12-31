@@ -1,42 +1,82 @@
 import { categories, products } from '@prisma/client'
 import Image from 'next/image'
-import { useEffect, useState } from 'react'
-import { Pagination, SegmentedControl, Select } from '@mantine/core'
+import { ChangeEvent, useState } from 'react'
+import { Input, Pagination, SegmentedControl, Select } from '@mantine/core'
 import { CATEGORY_MAP, FILTERS, TAKE } from 'constants/products'
+import { IconSearch } from '@tabler/icons'
+import useDebounce from 'hooks/useDebounce'
+import { useQuery } from '@tanstack/react-query'
 
 export default function Products() {
   const [activePage, setPage] = useState(1)
-  const [total, setTotal] = useState(0)
-  const [products, setProducts] = useState<products[]>([])
-  const [categories, setCategories] = useState<categories[]>([])
   const [selectedCategory, setSelectedCategory] = useState<string>('-1')
   const [selectedFilter, setSelectedFilter] = useState<string | null>(
     FILTERS[0].value
   )
+  const [keyword, setKeyword] = useState('')
 
-  useEffect(() => {
-    fetch(`/api/get-categories`)
-      .then((res) => res.json())
-      .then((data) => setCategories(data.items))
-  }, [])
+  const debouncedKeyword = useDebounce<string>(keyword)
 
-  useEffect(() => {
-    fetch(`/api/get-products-count?category=${selectedCategory}`)
-      .then((res) => res.json())
-      .then((data) => setTotal(Math.ceil(data.items / TAKE)))
-  }, [selectedCategory])
+  const { data: categories } = useQuery<
+    { items: categories[] },
+    unknown,
+    categories[]
+  >(
+    [`/api/get-categories`],
+    () => fetch(`/api/get-categories`).then((res) => res.json()),
+    {
+      select: (data) => data.items,
+    }
+  )
 
-  useEffect(() => {
-    const next = TAKE * (activePage - 1)
-    fetch(
-      `/api/get-products?skip=${next}&take=${TAKE}&category=${selectedCategory}&orderBy=${selectedFilter}`
-    )
-      .then((res) => res.json())
-      .then((data) => setProducts(data.items))
-  }, [activePage, selectedCategory, selectedFilter])
+  const { data: total } = useQuery<{ items: number }, unknown, number>(
+    [
+      `/api/get-products-count?category=${selectedCategory}&contains=${debouncedKeyword}`,
+    ],
+    () =>
+      fetch(
+        `/api/get-products-count?category=${selectedCategory}&contains=${debouncedKeyword}`
+      ).then((res) => res.json()),
+    {
+      select: (data) => Math.ceil(data.items / TAKE),
+    }
+  )
+
+  const { data: products } = useQuery<
+    { items: products[] },
+    unknown,
+    products[]
+  >(
+    [
+      `/api/get-products?skip=${
+        TAKE * (activePage - 1)
+      }&take=${TAKE}&category=${selectedCategory}&orderBy=${selectedFilter}&contains=${debouncedKeyword}`,
+    ],
+    () =>
+      fetch(
+        `/api/get-products?skip=${
+          TAKE * (activePage - 1)
+        }&take=${TAKE}&category=${selectedCategory}&orderBy=${selectedFilter}&contains=${debouncedKeyword}`
+      ).then((res) => res.json()),
+    {
+      select: (data) => data.items,
+    }
+  )
+
+  const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
+    setKeyword(e.target.value)
+  }
 
   return (
     <div className="px-36 mt-36 mb-36">
+      <div className="mb-4">
+        <Input
+          icon={<IconSearch />}
+          placeholder="Search"
+          value={keyword}
+          onChange={handleChange}
+        />
+      </div>
       <div className="mb-4">
         <Select
           value={selectedFilter}
@@ -60,39 +100,44 @@ export default function Products() {
           />
         </div>
       )}
-      {products && (
-        <div className="grid grid-cols-3 gap-5">
-          {products.map((item) => (
-            <div key={item.id} style={{ maxWidth: 300 }}>
-              <Image
-                className="rounded"
-                alt={item.name}
-                src={item.image_url ?? ''}
-                width={300}
-                height={200}
-                placeholder="blur"
-                blurDataURL="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=="
-              />
-              <div className="flex">
-                <span>{item.name}</span>
-                <span className="ml-auto">
-                  {item.price.toLocaleString('ko-KR')}
+      {products &&
+        (products.length === 0 ? (
+          <div className="text-center mt-4 text-2xl">No items</div>
+        ) : (
+          <div className="grid grid-cols-3 gap-5">
+            {products.map((item) => (
+              <div key={item.id} style={{ maxWidth: 300 }}>
+                <Image
+                  className="rounded"
+                  alt={item.name}
+                  src={item.image_url ?? ''}
+                  width={300}
+                  height={200}
+                  placeholder="blur"
+                  blurDataURL="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=="
+                />
+                <div className="flex">
+                  <span>{item.name}</span>
+                  <span className="ml-auto">
+                    {item.price.toLocaleString('ko-KR')}
+                  </span>
+                </div>
+                <span className="text-zinc-400">
+                  {CATEGORY_MAP[item.category_id - 1]}
                 </span>
               </div>
-              <span className="text-zinc-400">
-                {CATEGORY_MAP[item.category_id - 1]}
-              </span>
-            </div>
-          ))}
-        </div>
-      )}
+            ))}
+          </div>
+        ))}
       <div className="w-full flex mt-5">
-        <Pagination
-          className="m-auto"
-          page={activePage}
-          onChange={setPage}
-          total={total}
-        />
+        {total && (
+          <Pagination
+            className="m-auto"
+            page={activePage}
+            onChange={setPage}
+            total={total}
+          />
+        )}
       </div>
     </div>
   )
