@@ -1,7 +1,8 @@
+import { CountControl } from '@components/CountControl'
 import CustomEditor from '@components/Editor'
 import { Button } from '@mantine/core'
 import { products } from '@prisma/client'
-import { IconHeart, IconHeartbeat } from '@tabler/icons'
+import { IconHeart, IconHeartbeat, IconShoppingCart } from '@tabler/icons'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { CATEGORY_MAP } from 'constants/products'
 import { format } from 'date-fns'
@@ -32,6 +33,7 @@ export default function Products(props: {
   product: products & { images: string[] }
 }) {
   const session = useSession()
+  const [quantity, setQuantity] = useState<number | undefined>(1)
   const [index, setIndex] = useState(0)
   const router = useRouter()
   const queryClient = useQueryClient()
@@ -80,6 +82,17 @@ export default function Products(props: {
       },
     }
   )
+
+  const validate = (type: 'cart' | 'order') => {
+    if (quantity == null) {
+      alert('최소 수량을 입력하세요.')
+      return
+    }
+    alert('장바구니로 이동')
+
+    //TODO: 장바구니에 등록하는 기능 추가
+    router.push('/cart')
+  }
 
   const isWished = wishlist ? wishlist.includes(productId) : false
 
@@ -137,31 +150,55 @@ export default function Products(props: {
             <div className="text-lg">
               {product.price.toLocaleString('ko-kr')}원
             </div>
-            <Button
-              disabled={wishlist == null}
-              color={isWished ? 'red' : 'gray'}
-              variant="filled"
-              leftIcon={
-                isWished ? (
-                  <IconHeart size={20} stroke={1.5} />
-                ) : (
-                  <IconHeartbeat size={20} stroke={1.5} />
-                )
-              }
-              radius="xl"
-              size="md"
-              styles={{ root: { paddingRight: 14, height: 48 } }}
-              onClick={() => {
-                console.log(session)
-                if (session == null) {
-                  alert('로그인이 필요해요')
-                  router.push('/auth/login')
+            <div>
+              <span className="text-lg">수량</span>
+              <CountControl value={quantity} setValue={setQuantity} max={100} />
+            </div>
+            <div className="flex space-x-3">
+              <Button
+                color="dark"
+                variant="filled"
+                leftIcon={<IconShoppingCart size={20} stroke={1.5} />}
+                radius="xl"
+                size="md"
+                styles={{ root: { paddingRight: 14, height: 48 } }}
+                onClick={() => {
+                  console.log(session)
+                  if (session == null) {
+                    alert('로그인이 필요해요')
+                    router.push('/cart')
+                  }
+                  validate('cart')
+                }}
+              >
+                장바구니
+              </Button>
+              <Button
+                disabled={wishlist == null}
+                color={isWished ? 'red' : 'gray'}
+                variant="filled"
+                leftIcon={
+                  isWished ? (
+                    <IconHeart size={20} stroke={1.5} />
+                  ) : (
+                    <IconHeartbeat size={20} stroke={1.5} />
+                  )
                 }
-                mutate(String(productId))
-              }}
-            >
-              찜하기
-            </Button>
+                radius="xl"
+                size="md"
+                styles={{ root: { paddingRight: 14, height: 48 } }}
+                onClick={() => {
+                  console.log(session)
+                  if (session == null) {
+                    alert('로그인이 필요해요')
+                    router.push('/auth/login')
+                  }
+                  mutate(String(productId))
+                }}
+              >
+                찜하기
+              </Button>
+            </div>
             <div className="text-sm text-zinc-300">
               등록: {format(new Date(product.createdAt), `yyyy년 M월 d일`)}
             </div>
