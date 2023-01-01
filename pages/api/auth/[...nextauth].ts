@@ -19,7 +19,7 @@ export const authOptions: NextAuthOptions = {
     maxAge: 1 * 24 * 60 * 60,
   },
   callbacks: {
-    session: async ({ session, user }: { session: any; user: any }) => {
+    session: async ({ session, user }) => {
       session.id = user.id
       return Promise.resolve(session)
     },
