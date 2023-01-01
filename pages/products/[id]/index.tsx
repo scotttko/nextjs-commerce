@@ -105,7 +105,7 @@ export default function Products(props: {
   return (
     <>
       {product !== null && productId !== null ? (
-        <div className="p-24 flex flex-row">
+        <div className="flex flex-row">
           <div style={{ maxWidth: 600, marginRight: 52 }}>
             <Carousel withoutControls wrapAround speed={10} slideIndex={index}>
               {product.images.map((url, idx) => (
