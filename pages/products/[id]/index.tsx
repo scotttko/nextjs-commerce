@@ -1,7 +1,7 @@
 import { CountControl } from '@components/CountControl'
 import CustomEditor from '@components/Editor'
 import { Button } from '@mantine/core'
-import { Cart, products } from '@prisma/client'
+import { Cart, OrderItem, products } from '@prisma/client'
 import { IconHeart, IconHeartbeat, IconShoppingCart } from '@tabler/icons'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { CATEGORY_MAP } from 'constants/products'
@@ -13,6 +13,7 @@ import Image from 'next/image'
 import { useRouter } from 'next/router'
 import Carousel from 'nuka-carousel'
 import { CART_QUERY_KEY } from 'pages/cart'
+import { ORDER_QUERY_KEY } from 'pages/my'
 import { useEffect, useState } from 'react'
 
 export async function getServerSideProps(context: GetServerSidePropsContext) {
@@ -107,6 +108,29 @@ export default function Products(props: {
     }
   )
 
+  const { mutate: addOrder } = useMutation<
+    unknown,
+    unknown,
+    Omit<OrderItem, 'id'>[],
+    any
+  >(
+    (items) =>
+      fetch('/api/add-order', {
+        method: 'POST',
+        body: JSON.stringify({ items }),
+      })
+        .then((res) => res.json())
+        .then((data) => data.items),
+    {
+      onMutate: () => {
+        queryClient.invalidateQueries([ORDER_QUERY_KEY])
+      },
+      onSuccess: () => {
+        router.push('/my')
+      },
+    }
+  )
+
   const product = props.product
 
   const validate = async (type: 'cart' | 'order') => {
@@ -122,6 +146,17 @@ export default function Products(props: {
         quantity: quantity,
         amount: product.price * quantity,
       })
+    }
+
+    if (type === 'order') {
+      addOrder([
+        {
+          productId: product.id,
+          quantity: quantity,
+          price: product.price,
+          amount: product.price * quantity,
+        },
+      ])
     }
   }
 
@@ -193,11 +228,12 @@ export default function Products(props: {
                 styles={{ root: { paddingRight: 14, height: 48 } }}
                 onClick={() => {
                   console.log(session)
-                  if (session == null) {
+                  if (session.data == null) {
                     alert('로그인이 필요해요')
-                    router.push('/cart')
+                    router.push('/auth/login')
+                  } else {
+                    validate('cart')
                   }
-                  validate('cart')
                 }}
               >
                 장바구니
@@ -218,16 +254,35 @@ export default function Products(props: {
                 styles={{ root: { paddingRight: 14, height: 48 } }}
                 onClick={() => {
                   console.log(session)
-                  if (session == null) {
+                  if (session.data == null) {
                     alert('로그인이 필요해요')
                     router.push('/auth/login')
+                  } else {
+                    mutate(String(productId))
                   }
-                  mutate(String(productId))
                 }}
               >
                 찜하기
               </Button>
             </div>
+            <Button
+              color="dark"
+              variant="filled"
+              radius="xl"
+              size="md"
+              styles={{ root: { paddingRight: 14, height: 48 } }}
+              onClick={() => {
+                console.log(session)
+                if (session.data == null) {
+                  alert('로그인이 필요해요')
+                  router.push('/auth/login')
+                } else {
+                  validate('order')
+                }
+              }}
+            >
+              구매하기
+            </Button>
             <div className="text-sm text-zinc-300">
               등록: {format(new Date(product.createdAt), `yyyy년 M월 d일`)}
             </div>
