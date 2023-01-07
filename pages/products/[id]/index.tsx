@@ -19,7 +19,7 @@ import { useEffect, useState } from 'react'
 
 export async function getServerSideProps(context: GetServerSidePropsContext) {
   const product = await fetch(
-    `${process.env.NEXTAUTH_URL}/get-product?id=${context.params?.id}`
+    `${process.env.NEXTAUTH_URL}/api/get-product?id=${context.params?.id}`
   )
     .then((res) => res.json())
     .then((data) => data.items)
@@ -29,6 +29,7 @@ export async function getServerSideProps(context: GetServerSidePropsContext) {
   )
     .then((res) => res.json())
     .then((data) => data.items)
+
   return {
     props: {
       product: { ...product, images: [product.image_url, product.image_url] },
