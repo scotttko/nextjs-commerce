@@ -1,8 +1,9 @@
+import AutoSizeImage from '@components/AutoSizeImage'
 import CustomEditor from '@components/Editor'
 import { Slider } from '@mantine/core'
 import { convertFromRaw, convertToRaw, EditorState } from 'draft-js'
 import { useRouter } from 'next/router'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 export default function CommentEdit() {
   const router = useRouter()
@@ -11,6 +12,8 @@ export default function CommentEdit() {
   const [editorState, setEditorState] = useState<EditorState | undefined>(
     undefined
   )
+  const inputRef = useRef<HTMLInputElement>(null)
+  const [images, setImages] = useState<string[]>([])
 
   useEffect(() => {
     if (!!orderItemId) {
@@ -24,12 +27,45 @@ export default function CommentEdit() {
               )
             )
             setRate(data.items.rate)
+            setImages(data.items.images.split(',') ?? [])
           } else {
             setEditorState(EditorState.createEmpty())
           }
         })
     }
   }, [orderItemId])
+
+  const handleChange = () => {
+    if (
+      inputRef.current &&
+      inputRef.current.files &&
+      inputRef.current.files.length > 0
+    ) {
+      for (let i = 0; i < inputRef.current.files.length; i++) {
+        const fd = new FormData()
+
+        fd.append(
+          'image',
+          inputRef.current.files[i],
+          inputRef.current.files[i].name
+        )
+
+        fetch(
+          'https://api.imgbb.com/1/upload?expiration=15552000&key=d40c2c2a0fd75a4d6d66fbb11a45c531',
+          { method: 'POST', body: fd }
+        )
+          .then((res) => res.json())
+          .then((data) => {
+            console.log(data)
+
+            setImages((prev) =>
+              Array.from(new Set(prev.concat(data.data.image.url)))
+            )
+          })
+          .catch((err) => console.log(err))
+      }
+    }
+  }
 
   const handleSave = () => {
     if (editorState && orderItemId != null) {
@@ -41,7 +77,7 @@ export default function CommentEdit() {
           contents: JSON.stringify(
             convertToRaw(editorState.getCurrentContent())
           ),
-          images: [],
+          images: images.join(','),
         }),
       })
         .then((res) => res.json())
@@ -76,6 +112,18 @@ export default function CommentEdit() {
           { value: 5 },
         ]}
       />
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/*"
+        multiple
+        onChange={handleChange}
+      />
+      <div className="flex space-x-2">
+        {images &&
+          images.length > 0 &&
+          images.map((image, idx) => <AutoSizeImage key={idx} src={image} />)}
+      </div>
     </div>
   )
 }

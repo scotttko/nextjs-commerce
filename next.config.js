@@ -11,6 +11,7 @@ const nextConfig = {
       'raw.githubusercontent.com',
       'img.29cm.co.kr',
       'lh3.googleusercontent.com',
+      'i.ibb.co',
     ],
   },
 }
