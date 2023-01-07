@@ -66,13 +66,53 @@ export default function MyPage() {
 }
 
 const DetailItem = (props: OrderDetail) => {
+  const queryClient = useQueryClient()
+
+  const { mutate: updateOrder } = useMutation<
+    unknown,
+    unknown,
+    OrderDetail,
+    any
+  >(
+    (item) =>
+      fetch('/api/update-order', {
+        method: 'POST',
+        body: JSON.stringify({ item }),
+      })
+        .then((res) => res.json())
+        .then((data) => data.items),
+    {
+      onMutate: async (item) => {
+        await queryClient.cancelQueries([ORDER_QUERY_KEY])
+        const previous = queryClient.getQueryData([ORDER_QUERY_KEY])
+        queryClient.setQueryData<OrderDetail[]>([ORDER_QUERY_KEY], (old) =>
+          old?.map((order) => ({
+            ...order,
+            status: order.id !== item.id ? order.status : item.status,
+          }))
+        )
+
+        return { previous }
+      },
+      onError: (error, _, context) => {
+        queryClient.setQueryData([ORDER_QUERY_KEY], context.previous)
+      },
+      onSuccess: () => {
+        queryClient.invalidateQueries([ORDER_QUERY_KEY])
+      },
+    }
+  )
+
+  const handleOrder = (status: number) => () => {
+    updateOrder({ ...props, status: status })
+  }
   return (
     <div className="flex flex-col p-4 rounded-md border border-solid border-zinc-500">
       <div className="flex">
         <Badge color={props.status === 0 ? 'red' : ''} className="mb-2">
           {ORDER_STATUS_MAP[props.status + 1]}
         </Badge>
-        <IconX className="ml-auto" />
+        <IconX className="ml-auto" onClick={handleOrder(0)} />
       </div>
       {props.orderItems.map((orderItem, idx) => (
         <Item key={idx} {...orderItem} status={props.status} />
@@ -99,7 +139,9 @@ const DetailItem = (props: OrderDetail) => {
             주문 일자:{' '}
             {format(new Date(props.createdAt), 'yyyy년 M월 d일 HH:mm:ss')}
           </span>
-          <Button color="dark">결제 처리</Button>
+          <Button color="dark" onClick={handleOrder(5)}>
+            결제 처리
+          </Button>
         </div>
       </div>
     </div>
