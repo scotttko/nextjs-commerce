@@ -202,7 +202,7 @@ const Item = (props: CartItem) => {
         await queryClient.cancelQueries([CART_QUERY_KEY])
         const previous = queryClient.getQueryData([CART_QUERY_KEY])
         queryClient.setQueryData<Cart[]>([CART_QUERY_KEY], (old) =>
-          old?.filter((c) => c.id !== item.id).concat(item)
+          old?.map((c) => (c.id !== item.id ? { ...c } : { ...item }))
         )
 
         return { previous }
