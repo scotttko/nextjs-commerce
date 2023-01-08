@@ -7,7 +7,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { CATEGORY_MAP } from 'constants/products'
 import Image from 'next/image'
 import { useRouter } from 'next/router'
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { ORDER_QUERY_KEY } from './my'
 
 interface CartItem extends Cart {
@@ -207,7 +207,7 @@ const Item = (props: CartItem) => {
 
         return { previous }
       },
-      onError: (error, _, context) => {
+      onError: (__, _, context) => {
         queryClient.setQueryData([CART_QUERY_KEY], context.previous)
       },
       onSuccess: () => {
@@ -234,7 +234,7 @@ const Item = (props: CartItem) => {
 
         return { previous }
       },
-      onError: (error, _, context) => {
+      onError: (__, _, context) => {
         queryClient.setQueryData([CART_QUERY_KEY], context.previous)
       },
       onSuccess: () => {

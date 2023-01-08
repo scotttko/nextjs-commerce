@@ -1,6 +1,5 @@
 import CommentItem from '@components/CommentItem'
 import { CountControl } from '@components/CountControl'
-import CustomEditor from '@components/Editor'
 import NextHead from '@components/NextHead'
 import { Button } from '@mantine/core'
 import { Cart, Comment, OrderItem, products } from '@prisma/client'
@@ -8,7 +7,6 @@ import { IconHeart, IconHeartbeat, IconShoppingCart } from '@tabler/icons'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { CATEGORY_MAP } from 'constants/products'
 import { format } from 'date-fns'
-import { convertFromRaw, convertToRaw, EditorState } from 'draft-js'
 import { GetServerSidePropsContext } from 'next'
 import { useSession } from 'next-auth/react'
 import Image from 'next/image'
@@ -16,7 +14,7 @@ import { useRouter } from 'next/router'
 import Carousel from 'nuka-carousel'
 import { CART_QUERY_KEY } from 'pages/cart'
 import { ORDER_QUERY_KEY } from 'pages/my'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 
 export async function getServerSideProps(context: GetServerSidePropsContext) {
   const product = await fetch(
@@ -52,13 +50,6 @@ export default function Products(props: {
   const router = useRouter()
   const queryClient = useQueryClient()
   const { id: productId } = router.query
-  const [editorState, setEditorState] = useState<EditorState | undefined>(() =>
-    props.product.contents
-      ? EditorState.createWithContent(
-          convertFromRaw(JSON.parse(props.product.contents))
-        )
-      : EditorState.createEmpty()
-  )
 
   const { data: wishlist } = useQuery([WISHLIST_QUERY_KEY], () =>
     fetch(WISHLIST_QUERY_KEY)
@@ -88,7 +79,7 @@ export default function Products(props: {
 
         return { previous }
       },
-      onError: (error, _, context) => {
+      onError: (__, _, context) => {
         queryClient.setQueryData([WISHLIST_QUERY_KEY], context.previous)
       },
       onSuccess: () => {
@@ -174,23 +165,6 @@ export default function Products(props: {
 
   const isWished = wishlist ? wishlist.includes(productId) : false
 
-  // useEffect(() => {
-  //   if (!!productId) {
-  //     fetch(`/api/get-product?id=${productId}`)
-  //       .then((res) => res.json())
-  //       .then((data) => {
-  //         if (data.items.contents) {
-  //           setEditorState(
-  //             EditorState.createWithContent(
-  //               convertFromRaw(JSON.parse(data.items.contents))
-  //             )
-  //           )
-  //         } else {
-  //           setEditorState(EditorState.createEmpty())
-  //         }
-  //       })
-  //   }
-  // }, [productId])
   return (
     <>
       {product !== null && productId !== null ? (
@@ -218,9 +192,6 @@ export default function Products(props: {
                 </div>
               ))}
             </div>
-            {editorState != null && (
-              <CustomEditor editorState={editorState} readOnly />
-            )}
             <div>
               <p className="text-2xl font-semibold">후기</p>
               {props.comments &&
