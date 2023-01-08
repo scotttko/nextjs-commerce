@@ -1,6 +1,7 @@
 import CommentItem from '@components/CommentItem'
 import { CountControl } from '@components/CountControl'
 import CustomEditor from '@components/Editor'
+import NextHead from '@components/NextHead'
 import { Button } from '@mantine/core'
 import { Cart, Comment, OrderItem, products } from '@prisma/client'
 import { IconHeart, IconHeartbeat, IconShoppingCart } from '@tabler/icons'
@@ -194,6 +195,10 @@ export default function Products(props: {
     <>
       {product !== null && productId !== null ? (
         <div className="flex flex-row">
+          <NextHead
+            title={product.name}
+            desc={`${product.name}의 상세 페이지`}
+          />
           <div style={{ maxWidth: 600, marginRight: 52 }}>
             <Carousel withoutControls wrapAround speed={10} slideIndex={index}>
               {product.images.map((url, idx) => (
